@@ -11,7 +11,7 @@ public abstract class Hero extends Subject {
     protected double hp;
     protected double damage;
     protected double speed = 3.5;
-    protected AttackStrategy strategy;
+    public AttackStrategy strategy;
     protected double x = 100, y = 100;
     protected double size = 36;
 

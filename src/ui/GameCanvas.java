@@ -4,8 +4,9 @@ import combat.MagicAttack;
 import combat.MeleeAttack;
 import combat.RangedAttack;
 import entities.*;
+import factories.EnemyFactory;
+import factories.HeroFactory;
 import javafx.stage.Stage;
-import upgrades.*;
 import core.GameAnnouncer;
 import core.GameLogger;
 import core.Observer;
@@ -14,6 +15,9 @@ import javafx.application.Platform;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
+import upgrades.decorators.DamageBoostDecorator;
+import upgrades.decorators.HealthBoostDecorator;
+import upgrades.decorators.SpeedBoostDecorator;
 import util.Constants;
 
 import java.util.ArrayList;
@@ -50,12 +54,9 @@ public class GameCanvas extends Canvas {
     }
 
     private void createHero(String type) {
-        switch (type.toLowerCase()) {
-            case "archer": hero = new Archer(); break;
-            case "mage": hero = new Mage(); break;
-            default: hero = new Warrior();
-                hero.setStrategy(new MeleeAttack());
-                break;
+        hero = HeroFactory.createHero(type);
+        if (hero instanceof Warrior) {
+            hero.setStrategy(new MeleeAttack());
         }
     }
 
@@ -155,23 +156,28 @@ public class GameCanvas extends Canvas {
             } else {
                 stageIndex++;
                 applyRandomUpgrade();
+                resetHeroHp();
                 spawnLevel(stageIndex);
                 notifyObservers("Proceed to stage " + stageIndex);
             }
         }
     }
 
-
     private void applyRandomUpgrade() {
         Random rnd = new Random();
-        Upgrade u;
         int choice = rnd.nextInt(3);
-        if (choice == 0) u = new DamageBoost(1.2);
-        else if (choice == 1) u = new HealthBoost(25);
-        else u = new SpeedBoost(0.6);
 
-        u.apply(hero);
-        notifyObservers("Applied upgrade: " + u.getName());
+        switch (choice) {
+            case 0 -> hero = new DamageBoostDecorator(hero, 1.2);
+            case 1 -> hero = new HealthBoostDecorator(hero, 25);
+            case 2 -> hero = new SpeedBoostDecorator(hero, 0.6);
+        }
+
+        notifyObservers("Applied upgrade via decorator!");
+    }
+
+    private void resetHeroHp() {
+        hero.addMaxHp(0);
     }
 
     private Enemy findNearestEnemy() {
@@ -188,12 +194,21 @@ public class GameCanvas extends Canvas {
     private void spawnLevel(int idx) {
         enemies.clear();
         switch (idx) {
-            case 1 -> enemies.add(new Goblin(600, 300));
-            case 2 -> enemies.add(new Minotaur(600, 250));
-            case 3 -> { enemies.add(new Griffin(600,220)); enemies.add(new Goblin(650,340)); }
-            case 4 -> { enemies.add(new Hydra(600,260)); enemies.add(new Minotaur(650,320)); }
-            case 5 -> { enemies.add(new Dragon(700,260)); enemies.add(new Griffin(650,330)); }
-            default -> enemies.add(new Goblin(600,300));
+            case 1 -> enemies.add(EnemyFactory.createEnemy("goblin", 600, 300));
+            case 2 -> enemies.add(EnemyFactory.createEnemy("minotaur", 600, 250));
+            case 3 -> {
+                enemies.add(EnemyFactory.createEnemy("griffin", 600, 220));
+                enemies.add(EnemyFactory.createEnemy("goblin", 650, 340));
+            }
+            case 4 -> {
+                enemies.add(EnemyFactory.createEnemy("hydra", 600, 260));
+                enemies.add(EnemyFactory.createEnemy("minotaur", 650, 320));
+            }
+            case 5 -> {
+                enemies.add(EnemyFactory.createEnemy("dragon", 700, 260));
+                enemies.add(EnemyFactory.createEnemy("griffin", 650, 330));
+            }
+            default -> enemies.add(EnemyFactory.createEnemy("goblin", 600, 300));
         }
     }
 
